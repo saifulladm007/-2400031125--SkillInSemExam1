@@ -1,0 +1,147 @@
+import React, { useState, useEffect } from "react";
+
+// Default-exported React component ready to drop into a project
+// Uses Tailwind CSS for styling (no external CSS required)
+// Features:
+// - Input + Add button
+// - Add with Enter key
+// - Render tasks dynamically with map()
+// - Toggle complete, delete task
+// - Persist to localStorage
+
+export default function TodoApp() {
+  const [taskText, setTaskText] = useState("");
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const raw = localStorage.getItem("todo_tasks_v1");
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("todo_tasks_v1", JSON.stringify(tasks));
+    } catch (e) {
+      // ignore
+    }
+  }, [tasks]);
+
+  function addTask() {
+    const text = taskText.trim();
+    if (!text) return;
+    const newTask = {
+      id: Date.now(),
+      text,
+      done: false,
+    };
+    setTasks((t) => [newTask, ...t]);
+    setTaskText("");
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") addTask();
+  }
+
+  function toggleTask(id) {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  }
+
+  function deleteTask(id) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function clearCompleted() {
+    setTasks((prev) => prev.filter((t) => !t.done));
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
+        <h1 className="text-2xl font-semibold mb-4">Daily To‑Do List</h1>
+
+        <div className="flex gap-3 mb-4">
+          <input
+            aria-label="New task"
+            className="flex-1 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            placeholder="What do you want to do today?"
+            value={taskText}
+            onChange={(e) => setTaskText(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+
+          <button
+            onClick={addTask}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition"
+          >
+            Add
+          </button>
+        </div>
+
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm text-gray-500">{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTasks((prev) => prev.map((t) => ({ ...t, done: true })))}
+              className="text-sm px-2 py-1 rounded border border-gray-200"
+            >
+              Mark all done
+            </button>
+            <button
+              onClick={clearCompleted}
+              className="text-sm px-2 py-1 rounded border border-gray-200"
+            >
+              Clear completed
+            </button>
+          </div>
+        </div>
+
+        <ul className="space-y-2">
+          {tasks.map((task) => (
+            <li
+              key={task.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-100 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  id={`chk-${task.id}`}
+                  type="checkbox"
+                  checked={task.done}
+                  onChange={() => toggleTask(task.id)}
+                  className="w-5 h-5"
+                />
+
+                <label
+                  htmlFor={`chk-${task.id}`}
+                  className={`select-none ${task.done ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                >
+                  {task.text}
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleTask(task.id)}
+                  className="text-sm px-2 py-1 rounded border border-gray-200"
+                >
+                  {task.done ? 'Undo' : 'Done'}
+                </button>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="text-sm px-2 py-1 rounded border border-red-200 text-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {tasks.length === 0 && (
+          <p className="mt-4 text-sm text-gray-500">Your to‑do list is empty. Add your first task above.</p>
+        )}
+      </div>
+    </div>
+  );
+}
